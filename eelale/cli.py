@@ -1,10 +1,7 @@
 import click
-import tempfile
 import subprocess
 import hashlib
 import os
-import textwrap
-import shutil
 import logging
 
 
@@ -16,32 +13,23 @@ def flatten(seqs):
 
 
 class Builder:
-    def __init__(self, base_image='ubuntu:xenial', python='python3', wheel_dir=None, policy=None):
+    def __init__(self, base_image, python='python', wheel_dir=None, policy=None):
         self.base_image = base_image
         self.build_dir = os.path.abspath('.eelale')
         self.wheel_dir = os.path.abspath(wheel_dir) if wheel_dir else self.build_dir
-        self.pip_version = None
         self.python = python
         self.policy = policy
-
-    def vars(self):
-        return {
-            'baseimage': self.base_image,
-            'python': self.python,
-            'pip_version': '==%s' % self.pip_version if self.pip_version else '',
-            'setuptools_version': '',
-            'auditwheel_version': '',
-        }
+        self.build_deps = ['pip', 'setuptools', 'auditwheel']
 
     @property
     def dockerfile(self):
-        return textwrap.dedent("""
-            FROM {baseimage}
-            VOLUME /eelale/wheels
-            RUN {python} -m pip install -U pip{pip_version}
-            RUN {python} -m pip install setuptools{setuptools_version}
-            RUN {python} -m pip install auditwheel{auditwheel_version}
-        """).format(**self.vars()).strip()
+        lines = [
+            'FROM %s' % self.base_image,
+            'VOLUME /eelale/wheels',
+        ]
+        for dep in self.build_deps:
+            lines.append('RUN %s -m pip install -U %s' % (self.python, dep))
+        return '\n'.join(lines)
 
     @property
     def image_name(self):
@@ -71,7 +59,7 @@ class Builder:
 
     def build(self, packages, force=(':none:',)):
         self.create_image()
-        wheel_output = self.run([
+        self.run([
             self.python,
             '-m', 'pip',
             'wheel',

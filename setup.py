@@ -1,7 +1,4 @@
-# -*- coding: utf-8 -*-
 from setuptools import setup, find_packages
-
-import sys
 
 
 with open('README.rst') as f:
