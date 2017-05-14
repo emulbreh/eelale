@@ -15,7 +15,7 @@ setup(
     license='BSD License',
     author='',
     maintainer='Johannes Dollinger',
-    maintainer_email='johannes.dollinger@deliveryhero.com',
+    maintainer_email='emulbreh@googlemail.com',
     description='cross-compiles Python wheels',
     long_description=description,
     include_package_data=True,
