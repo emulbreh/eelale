@@ -3,6 +3,7 @@ import subprocess
 import hashlib
 import os
 import logging
+import shutil
 
 
 logger = logging.getLogger(__name__)
@@ -13,11 +14,16 @@ def flatten(seqs):
 
 
 class Builder:
-    def __init__(self, base_image, python='python', wheel_dir=None, policy=None):
+
+    def __init__(self, base_image, python='python', build_dir='.eelale', wheel_dir=None, policy=None):
         self.base_image = base_image
-        self.build_dir = os.path.abspath('.eelale')
-        self.wheel_dir = os.path.abspath(wheel_dir) if wheel_dir else self.build_dir
         self.python = python
+        self.build_dir = os.path.abspath(build_dir)
+        if wheel_dir:
+            # FIXME: arbitrary wheel dirs don't really work yet
+            self.wheel_dir = os.path.abspath(wheel_dir)
+        else:
+            self.wheel_dir = os.path.join(self.build_dir, 'wheels')
         self.policy = policy
         self.build_deps = ['pip', 'setuptools', 'auditwheel']
 
@@ -25,7 +31,7 @@ class Builder:
     def dockerfile(self):
         lines = [
             'FROM %s' % self.base_image,
-            'VOLUME /eelale/wheels',
+            'VOLUME /eelale/volume',
         ]
         for dep in self.build_deps:
             lines.append('RUN %s -m pip install -U %s' % (self.python, dep))
@@ -50,23 +56,30 @@ class Builder:
             'docker',
             'run',
             '--rm',
-            '--volume', '%s:/eelale/wheels' % self.wheel_dir,
+            '--volume', '%s:%s' % (self.build_dir, '/eelale/volume'),
             self.image_name,
             *cmd
         ]
         logger.info(full_command)
         return subprocess.run(full_command, check=True)
 
-    def build(self, packages, force=(':none:',)):
+    def copy(self, path):
+        base, ext = os.path.splitext(path)
+        filename = '%s%s' % (hashlib.sha1(base.encode('utf-8')).hexdigest(), ext)
+        shutil.copy(path, os.path.join(self.build_dir, filename))
+        return '/eelale/volume/%s' % filename
+
+    def build(self, *args, force=(':none:',)):
         self.create_image()
+        os.makedirs(self.wheel_dir)
         self.run([
             self.python,
             '-m', 'pip',
             'wheel',
-            '--wheel-dir', '/eelale/wheels',
+            '--wheel-dir', '/eelale/volume/wheels',
             '--no-deps',
             *flatten(('--no-binary', package) for package in force),
-            *packages
+            *args
         ])
         if self.policy:
             for name in os.listdir(self.wheel_dir):
@@ -75,7 +88,7 @@ class Builder:
                         self.python,
                         '-m', 'auditwheel',
                         'repair',
-                        '--wheel-dir', '/eelale/wheels',
+                        '--wheel-dir', '/eelale/volume/wheels',
                         '--plat', self.policy,
                         '/eelale/wheels/%s' % name,
                     ])
@@ -102,7 +115,14 @@ def build(requirement, wheeldir, image, python, policy, force_build, package):
         policy=policy,
     )
     print(builder.dockerfile)
+
+    def build_args():
+        yield from package
+        for req in requirement:
+            yield '-r'
+            yield builder.copy(req)
+
     try:
-        builder.build(package, force=force_build)
+        builder.build(*build_args(), force=force_build)
     except subprocess.CalledProcessError as e:
         raise click.ClickException(str(e)) from e
