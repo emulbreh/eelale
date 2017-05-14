@@ -7,7 +7,7 @@ with open('README.rst') as f:
 setup(
     name='eelale',
     url='http://github.com/emulbreh/eelale/',
-    version='0.1.0-dev',
+    version='0.2.0-dev',
     packages=find_packages(),
     license='BSD License',
     author='',

@@ -1,7 +1,7 @@
 eelale
 ======
 
-cross-compiles Python wheels insider containers.
+cross-compiles Python wheels inside containers.
 
 Usage
 ------
@@ -9,7 +9,7 @@ Usage
 .. code-block:: console
 
     # build wheel from a single package:
-    $ eelale build numba
+    $ eelale build gevent
 
     # or from a set of requirements:
     $ eelale build -r requirements.txt
@@ -24,4 +24,4 @@ Usage
 Installation
 -------------
 
-You can simply ``pip install eelale``. You also need Docker.
+Simply ``pip install eelale``. You also need Docker.
