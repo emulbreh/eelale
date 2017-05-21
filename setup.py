@@ -9,7 +9,7 @@ setup(
     url='http://github.com/emulbreh/eelale/',
     version='0.3.0-dev',
     packages=find_packages(),
-    license='BSD License',
+    license='MIT License',
     author='',
     maintainer='Johannes Dollinger',
     maintainer_email='emulbreh@googlemail.com',
@@ -27,7 +27,7 @@ setup(
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
-        'License :: OSI Approved :: BSD License',
+        'License :: OSI Approved :: MIT License',
         'Operating System :: OS Independent',
         'Programming Language :: Python :: 3'
     ]
